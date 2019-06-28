@@ -9,5 +9,8 @@
 (defpackage :argdoc
     (:use "COMMON-LISP")
     (:export
-))
+     #:all-function-symbols
+     #:document
+     #:inspect-package
+     #:write-function))
 

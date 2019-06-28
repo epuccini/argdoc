@@ -6,4 +6,11 @@
 ;;; Author:   Edward Puccini
 ;;; -----------------------------------------------------
 
-(in-package :argdoc)
+(require :argdoc)
+
+(defun main ()
+  "Test application for argdoc package documentation tool."
+  (argdoc:document :package :argparse
+                   :filename "argparse.txt"
+                   :path "../doc/"
+                   :type "PLAINTEXT"))
