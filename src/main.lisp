@@ -11,6 +11,6 @@
 (defun main ()
   "Test application for argdoc package documentation tool."
   (argdoc:document :package :argparse
-                   :filename "argparse.txt"
+                   :filename "argparse.html"
                    :path "../doc/"
-                   :type "PLAINTEXT"))
+                   :doc-type-object (make-instance 'argdoc:doc-html)))

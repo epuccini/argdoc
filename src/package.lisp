@@ -12,5 +12,10 @@
      #:all-function-symbols
      #:document
      #:inspect-package
-     #:write-function))
+     #:write-functions
+     #:write-function
+     #:doc-type
+     #:doc-html
+     #:doc-plaintext
+     #:doc-richtext))
 

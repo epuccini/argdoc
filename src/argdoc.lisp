@@ -9,10 +9,7 @@
 (in-package :argdoc)
 
 (defclass doc-type ()
-  ((stream :accessor stream-of
-           :initarg :stream
-           :initform nil
-           :documentation "Document file stream")))
+  ())
 
 (defclass doc-plaintext (doc-type)
   ())
@@ -23,56 +20,65 @@
 (defclass doc-richtext (doc-type)
   ())
 
-(defun document (&key package filename path type)
+(defun document (&key package filename path doc-type-object)
   "Document creates package documentation at path.
 *Arguments
 - PACKAGE :: Package name
 - FILENAME :: Document file name
 - PATH :: Documentation path
-- TYPE :: 'RICHTEXT 'HTML 'PLAINTEXT
+- DOC-TYPE-OBJECT :: RICHTEXT, HTML or PLAINTEXT doc-type-objext
 *Returns
 Document source."
-  (let ((content "")
-        (doc-type-object nil))
+  (let ((content ""))
     (asdf:load-system package)
     (with-open-file (stream (merge-pathnames path filename)
                             :direction :output
                             :if-does-not-exist :create
                             :if-exists :overwrite)
-      (if (equal type "HTML")
-          (setf doc-type-object (make-instance 'doc-html :stream stream)))
-      (if (equal type "PLAINTEXT")
-          (setf doc-type-object (make-instance 'doc-plaintext :stream stream)))
-      (if (equal type "RICHTEXT")
-          (setf doc-type-object (make-instance 'doc-richtext :stream stream)))
       (setf content (inspect-package package stream doc-type-object))
       content)))
 
 (defun all-function-symbols (package)
-  "Retrieves all functions in a package."
+  "Retrieves all functions in a package.
+*Arguments
+- PACKAGE :: Package name
+*Returns
+VALUES of Symbols and Documentation strings"
   (when (find-package package)
-    (let ((res (list))
+    (let ((syms (list))
           (docs (list)))
       (do-all-symbols (sym package)
         (when (and (fboundp sym)
                    (eql (symbol-package sym)
                         (find-package package)))
           (prog1
-              (push sym res)
+              (push sym syms)
             (push (documentation sym 'function) docs))))
-      (values res docs))))
+      (values syms docs))))
 
 (defun inspect-package (package stream doc-type-object)
-  "Inspekt package and its content"
+  "Inspekt package and its content
+*Arguments
+- PACKAGE :: Package name
+- STREAM :: File stream
+- DOC-TYPE-OBJECT :: Document type object"
+  (write-functions package stream doc-type-object))
+
+(defun write-functions (package stream doc-type-object)
+  "Write all package functions to file.
+*Arguments
+- PACKAGE :: Package name
+- STREAM :: File stream
+- DOC-TYPE-OBJECT :: Document type object"
   (multiple-value-bind (syms docs) (all-function-symbols package)
                        (mapcar #'(lambda (s d)
                                    (write-function s d stream doc-type-object))
                                syms docs)
-    syms))
+                       syms))
 
 (defmethod write-function (function doc stream (doc-type-object doc-html))
   (format stream "<div class='function'><b>Function</b>: ~a</div>~%" function)
-  (format stream "<div class='documentation'><b>Documentation</b>: ~a</div>~%" doc))
+  (format stream "<div class='documentation'><b>Documentation</b>: ~a</div><br>~%" doc))
 
 (defmethod write-function (function doc stream (doc-type-object doc-plaintext))
   (format stream "Function: ~a~%" function)
