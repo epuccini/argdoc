@@ -29,14 +29,12 @@
 - DOC-TYPE-OBJECT :: RICHTEXT, HTML or PLAINTEXT doc-type-objext
 *Returns
 Document source."
-  (let ((content ""))
-    (asdf:load-system package)
-    (with-open-file (stream (merge-pathnames path filename)
-                            :direction :output
-                            :if-does-not-exist :create
-                            :if-exists :overwrite)
-      (setf content (inspect-package package stream doc-type-object))
-      content)))
+  (asdf:load-system package)
+  (with-open-file (stream (merge-pathnames path filename)
+                          :direction :output
+                          :if-does-not-exist :create
+                          :if-exists :overwrite)
+    (inspect-package package stream doc-type-object)))
 
 (defun all-function-symbols (package)
   "Retrieves all functions in a package.
@@ -62,7 +60,12 @@ VALUES of Symbols and Documentation strings"
 - PACKAGE :: Package name
 - STREAM :: File stream
 - DOC-TYPE-OBJECT :: Document type object"
-  (write-functions package stream doc-type-object))
+  (write-document-header package stream doc-type-object)
+  (write-functions-header stream doc-type-object)
+  (write-functions package stream doc-type-object)
+  (write-functions-footer stream doc-type-object)
+  (write-document-footer package stream doc-type-object)
+  doc-type-object)
 
 (defun write-functions (package stream doc-type-object)
   "Write all package functions to file.
@@ -76,6 +79,26 @@ VALUES of Symbols and Documentation strings"
                                syms docs)
                        syms))
 
+
+(defmethod write-document-header (package stream (doc-type-object doc-html))
+  (format stream "<head><title>~a</title></head><body><h1>~a - Package documentation</h1><br>~%"
+          package package))
+
+(defmethod write-document-header (package stream (doc-type-object doc-plaintext))
+  (format stream "~a - Package documentation~%" package))
+
+(defmethod write-document-header (package stream (doc-type-object doc-richtext))
+  (format stream "~a - Package documentation~%" package))
+
+(defmethod write-functions-header (stream (doc-type-object doc-html))
+  (format stream "<h1>Functions</h1><br>~%"))
+
+(defmethod write-functions-header (stream (doc-type-object doc-plaintext))
+  (format stream "Functions~%"))
+
+(defmethod write-functions-header (stream (doc-type-object doc-richtext))
+  (format stream "Functions~%"))
+
 (defmethod write-function (function doc stream (doc-type-object doc-html))
   (format stream "<div class='function'><b>Function</b>: ~a</div>~%" function)
   (format stream "<div class='documentation'><b>Documentation</b>: ~a</div><br>~%" doc))
@@ -88,5 +111,22 @@ VALUES of Symbols and Documentation strings"
   (format stream "Function: ~a~%" function)
   (format stream "Documentation: ~a~%~%" doc))
 
+(defmethod write-functions-footer (stream (doc-type-object doc-html))
+  (format stream "Functions End<br><br>~%"))
+
+(defmethod write-functions-footer (stream (doc-type-object doc-plaintext))
+  (format stream "Functions End~%"))
+
+(defmethod write-functions-footer (stream (doc-type-object doc-richtext))
+  (format stream "Functions End~%"))
+
+(defmethod write-document-footer (package stream (doc-type-object doc-html))
+  (format stream "~a - Package End<br></body>~%" package))
+
+(defmethod write-document-footer (package stream (doc-type-object doc-plaintext))
+  (format stream "~a - Package End~%" package))
+
+(defmethod write-document-footer (package stream (doc-type-object doc-richtext))
+  (format stream "~a - Package End~%" package))
 
   
