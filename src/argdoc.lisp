@@ -79,6 +79,25 @@ Document source."
       (rec system))
     (ordered-dep-tree (alexandria:hash-table-alist res))))
 
+
+(defun all-variable-symbols (package)
+  "Retrieves all variables in a package.
+*Arguments
+- PACKAGE :: Package name
+*Returns
+VALUES of Symbols and Documentation strings"
+  (when (find-package package)
+    (let ((syms (list))
+          (docs (list)))
+      (do-all-symbols (sym package)
+        (when (and (boundp sym)
+                   (eql (symbol-package sym)
+                        (find-package package)))
+          (prog1
+              (push sym syms)
+            (push (documentation sym 'variable) docs))))
+      (values syms docs))))
+
 (defun all-function-symbols (package)
   "Retrieves all functions in a package.
 *Arguments
@@ -107,6 +126,9 @@ VALUES of Symbols and Documentation strings"
   (write-group-header stream "Dependencies" doc-type-object)
   (write-dependencies package stream doc-type-object)
   (write-group-footer stream "Dependencies" doc-type-object)
+  (write-group-header stream "Variables" doc-type-object)
+  (write-variables package stream doc-type-object)
+  (write-group-footer stream "Variables" doc-type-object)
   (write-group-header stream "Functions" doc-type-object)
   (write-functions package stream doc-type-object)
   (write-group-footer stream "Functions" doc-type-object)
@@ -121,7 +143,19 @@ VALUES of Symbols and Documentation strings"
 - DOC-TYPE-OBJECT :: Document type object"
   (multiple-value-bind (syms docs) (all-function-symbols package)
                        (mapcar #'(lambda (s d)
-                                   (write-function s d stream doc-type-object))
+                                   (write-symbol s d stream doc-type-object))
+                               syms docs)
+                       syms))
+
+(defun write-variables (package stream doc-type-object)
+  "Write all package variables to file.
+*Arguments
+- PACKAGE :: Package name
+- STREAM :: File stream
+- DOC-TYPE-OBJECT :: Document type object"
+  (multiple-value-bind (syms docs) (all-variable-symbols package)
+                       (mapcar #'(lambda (s d)
+                                   (write-symbol s d stream doc-type-object))
                                syms docs)
                        syms))
 
@@ -157,7 +191,7 @@ VALUES of Symbols and Documentation strings"
 (defmethod write-group-header (stream type (doc-type-object doc-richtext))
   (format stream "~%~a~%~%" type))
 
-(defmethod write-function (function doc stream (doc-type-object doc-html))
+(defmethod write-symbol (function doc stream (doc-type-object doc-html))
   (let ((html-doc (cl-ppcre:regex-replace-all
                    (format nil "~a" #\newline) doc "<br>")))
     (format stream "<div class='function'><b>Function</b>: ~a</div>~%" function)

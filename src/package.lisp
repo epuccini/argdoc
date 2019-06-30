@@ -15,7 +15,7 @@
      #:write-document-header
      #:write-group-header
      #:write-functions
-     #:write-function
+     #:write-symbol
      #:write-group-footer
      #:write-document-footer
      #:doc-type
