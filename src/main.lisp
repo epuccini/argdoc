@@ -12,5 +12,5 @@
   "Test application for argdoc package documentation tool."
   (argdoc:document :package :argparse
                    :filename "argparse.html"
-                   :path "../doc/"
+                   :path "../../argparse/doc/"
                    :doc-type-object (make-instance 'argdoc:doc-html)))

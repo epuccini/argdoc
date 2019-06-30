@@ -91,7 +91,7 @@ VALUES of Symbols and Documentation strings"
   (format stream "~a - Package documentation~%" package))
 
 (defmethod write-group-header (stream type (doc-type-object doc-html))
-  (format stream "<h1>~a</h1><br>~%" type))
+  (format stream "<div class='header'><h1>~a</h1></div><br><div class='group'>~%" type))
 
 (defmethod write-group-header (stream type (doc-type-object doc-plaintext))
   (format stream "~a~%" type))
@@ -112,7 +112,7 @@ VALUES of Symbols and Documentation strings"
   (format stream "Documentation: ~a~%~%" doc))
 
 (defmethod write-group-footer (stream type (doc-type-object doc-html))
-  (format stream "~a End<br><br>~%" type))
+  (format stream "</div><div class='footer'>~a End</div><br><br>~%" type))
 
 (defmethod write-group-footer (stream type (doc-type-object doc-plaintext))
   (format stream "~a End~%" type))
