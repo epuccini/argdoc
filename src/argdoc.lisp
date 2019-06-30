@@ -61,9 +61,9 @@ VALUES of Symbols and Documentation strings"
 - STREAM :: File stream
 - DOC-TYPE-OBJECT :: Document type object"
   (write-document-header package stream doc-type-object)
-  (write-functions-header stream doc-type-object)
+  (write-group-header stream "Functions" doc-type-object)
   (write-functions package stream doc-type-object)
-  (write-functions-footer stream doc-type-object)
+  (write-group-footer stream "Functions" doc-type-object)
   (write-document-footer package stream doc-type-object)
   doc-type-object)
 
@@ -90,14 +90,14 @@ VALUES of Symbols and Documentation strings"
 (defmethod write-document-header (package stream (doc-type-object doc-richtext))
   (format stream "~a - Package documentation~%" package))
 
-(defmethod write-functions-header (stream (doc-type-object doc-html))
-  (format stream "<h1>Functions</h1><br>~%"))
+(defmethod write-group-header (stream type (doc-type-object doc-html))
+  (format stream "<h1>~a</h1><br>~%" type))
 
-(defmethod write-functions-header (stream (doc-type-object doc-plaintext))
-  (format stream "Functions~%"))
+(defmethod write-group-header (stream type (doc-type-object doc-plaintext))
+  (format stream "~a~%" type))
 
-(defmethod write-functions-header (stream (doc-type-object doc-richtext))
-  (format stream "Functions~%"))
+(defmethod write-group-header (stream type (doc-type-object doc-richtext))
+  (format stream "~a~%" type))
 
 (defmethod write-function (function doc stream (doc-type-object doc-html))
   (format stream "<div class='function'><b>Function</b>: ~a</div>~%" function)
@@ -111,14 +111,14 @@ VALUES of Symbols and Documentation strings"
   (format stream "Function: ~a~%" function)
   (format stream "Documentation: ~a~%~%" doc))
 
-(defmethod write-functions-footer (stream (doc-type-object doc-html))
-  (format stream "Functions End<br><br>~%"))
+(defmethod write-group-footer (stream type (doc-type-object doc-html))
+  (format stream "~a End<br><br>~%" type))
 
-(defmethod write-functions-footer (stream (doc-type-object doc-plaintext))
-  (format stream "Functions End~%"))
+(defmethod write-group-footer (stream type (doc-type-object doc-plaintext))
+  (format stream "~a End~%" type))
 
-(defmethod write-functions-footer (stream (doc-type-object doc-richtext))
-  (format stream "Functions End~%"))
+(defmethod write-group-footer (stream type (doc-type-object doc-richtext))
+  (format stream "~a End~%" type))
 
 (defmethod write-document-footer (package stream (doc-type-object doc-html))
   (format stream "~a - Package End<br></body>~%" package))

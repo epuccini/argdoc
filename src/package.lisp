@@ -13,10 +13,10 @@
      #:document
      #:inspect-package
      #:write-document-header
-     #:write-functions-header
+     #:write-group-header
      #:write-functions
      #:write-function
-     #:write-functions-footer
+     #:write-group-footer
      #:write-document-footer
      #:doc-type
      #:doc-html
