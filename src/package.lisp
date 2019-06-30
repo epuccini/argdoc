@@ -21,5 +21,6 @@
      #:doc-type
      #:doc-html
      #:doc-plaintext
-     #:doc-richtext))
+     #:doc-richtext
+     #:dependency-tree))
 
