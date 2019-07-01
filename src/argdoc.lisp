@@ -105,6 +105,27 @@ List of package dependencies"
     (ordered-dep-tree (alexandria:hash-table-alist res))))
 
 
+(defun all-class-symbols (package)
+  "Retrieves all classes in a package.
+*Arguments
+- PACKAGE :: Package name
+*Returns
+VALUES of Symbols and Documentation strings"
+  (when (find-package package)
+    (let ((syms (list))
+          (docs (list)))
+      (do-all-symbols (sym package)
+        (handler-case
+            (when (and (class-name (find-class sym))
+                       (eql (symbol-package sym)
+                            (find-package package)))
+              (let ((class-doc (with-output-to-string (*standard-output*) (describe sym))))
+                (push sym syms)
+                (push class-doc docs)))
+          (error (condition))))
+      (values syms docs))))
+
+
 (defun all-variable-symbols (package)
   "Retrieves all variables in a package.
 *Arguments
@@ -136,14 +157,13 @@ VALUES of Symbols and Documentation strings"
         (when (and (fboundp sym)
                    (eql (symbol-package sym)
                         (find-package package)))
-          (prog1
-              (push sym syms)
-            (let ((fun-doc (documentation sym 'function))
-                  (desc-doc (with-output-to-string (*standard-output*) (describe sym))))
-              (if fun-doc
-                  (push fun-doc docs)
-                  (push desc-doc docs))))))
-      (values syms docs))))
+          (let ((fun-doc (documentation sym 'function))
+                (desc-doc (with-output-to-string (*standard-output*) (describe sym))))
+            (push sym syms)
+            (if fun-doc
+                (push fun-doc docs)
+                (push desc-doc docs)))))
+    (values syms docs))))
 
 (defun inspect-package (package stream doc-type-object)
   "Inspekt package and its content
@@ -161,9 +181,23 @@ VALUES of Symbols and Documentation strings"
   (write-group-header stream "Functions" doc-type-object)
   (write-functions stream package doc-type-object)
   (write-group-footer stream "Functions" doc-type-object)
+  (write-group-header stream "Classes" doc-type-object)
+  (write-classes stream package doc-type-object)
+  (write-group-footer stream "Classes" doc-type-object)
   (write-document-footer stream package doc-type-object)
   doc-type-object)
 
+(defun write-classes (stream package doc-type-object)
+  "Write all package classes to file.
+*Arguments
+- PACKAGE :: Package name.
+- STREAM :: File stream.
+- DOC-TYPE-OBJECT :: Document type object."
+  (multiple-value-bind (syms docs) (all-class-symbols package)
+                       (mapcar #'(lambda (s d)
+                                   (write-symbol stream s d doc-type-object))
+                               syms docs)
+                       syms))
 (defun write-functions (stream package doc-type-object)
   "Write all package functions to file.
 *Arguments
@@ -189,7 +223,7 @@ VALUES of Symbols and Documentation strings"
                        syms))
 
 (defun write-dependencies (stream package doc-type-object)
-  "Write all package dependencies to file.
+  "Write all package imports to file.
 *Arguments
 - PACKAGE :: Package name.
 - STREAM :: File stream.
@@ -258,7 +292,7 @@ VALUES of Symbols and Documentation strings"
 - STREAM :: File output stream.
 - SYM :: Symbol to document.
 - DOC-TYPE-OBJECT :: Type class instance."
-  (let ((html-doc (cl-ppcre:regex-replace-all
+  (let ((html-doc (regex-replace-all
                    (format nil "~a" #\newline) doc "<br>")))
     (format stream "<div class='function'><b>Function</b>: ~a</div>~%" sym)
     (format stream "<div class='documentation'><b>Documentation</b>:<br>~a</div><br>~%" html-doc)))
