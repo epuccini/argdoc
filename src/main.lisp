@@ -10,7 +10,7 @@
 
 (defun main ()
   "Test application for argdoc package documentation tool."
-  (argdoc:document :package :argparse
-                   :filename "argparse.html"
-                   :path "../../argparse/doc/"
-                   :doc-type-object (make-instance 'argdoc:doc-html)))
+  (argdoc:document :package :argdoc
+                   :filename "argdoc.html"
+                   :path "../doc/"
+                   :doc-type 'argdoc:doc-html))

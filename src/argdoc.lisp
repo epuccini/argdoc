@@ -20,21 +20,22 @@
 (defclass doc-stdout (doc-type)
   ())
 
-(defun document (&key package filename path doc-type-object)
+(defun document (&key package filename path doc-type)
   "Document creates package documentation at path.
 *Arguments
 - PACKAGE :: Package name
 - FILENAME :: Document file name
 - PATH :: Documentation path
-- DOC-TYPE-OBJECT :: STDOUT, HTML or PLAINTEXT doc-type-objext
+- DOC-TYPE :: STDOUT, HTML or PLAINTEXT doc-type-objext
 *Returns
 Document source."
   (asdf:load-system package)
   (with-open-file (stream (merge-pathnames path filename)
                           :direction :output
                           :if-does-not-exist :create
-                          :if-exists :overwrite)
-    (inspect-package package stream doc-type-object)))
+                          :if-exists :supersede)
+    (inspect-package package stream
+                     (make-instance doc-type))))
 
 (defgeneric ->key (thing))
 
