@@ -280,7 +280,7 @@ VALUES of Symbols and Documentation strings"
 - PACKAGE :: Package to document.
 - STREAM :: File output stream.
 - DOC-TYPE-OBJECT :: Type class instance."
-  (format stream "<head><title>~a</title></head><body><h1>~a - Package documentation</h1><br>~%"
+  (format stream "<head><title>~a</title></head><body><div class='large-header'><b>~a - Package documentation</b></div><br><link rel='stylesheet' type 'text/css' href='../doc/styles.css' />~%"
           package package))
 
 (defmethod write-document-header (stream package (doc-type-object doc-plaintext))
@@ -289,7 +289,8 @@ VALUES of Symbols and Documentation strings"
 - PACKAGE :: Package to document.
 - STREAM :: File output stream.
 - DOC-TYPE-OBJECT :: Type class instance."
-  (format stream "~%~a - Package documentation~%~%" package))
+  (format stream "~%~a - Package documentation~%~%"
+          package))
 
 (defmethod write-document-header (stream package (doc-type-object doc-stdout))
   "Write document header to stdout.
@@ -306,7 +307,7 @@ VALUES of Symbols and Documentation strings"
 - GROUP :: Group to document.
 - STREAM :: File output stream.
 - DOC-TYPE-OBJECT :: Type class instance."
-  (format stream "<div class='header'><h1>~a</h1></div><br><div class='group'>~%" type))
+  (format stream "<div class='group'><div class='header'><b>~a</b></div><br>~%" type))
 
 (defmethod write-group-header (stream type (doc-type-object doc-plaintext))
     "Write group header as plaintext.
@@ -334,7 +335,7 @@ VALUES of Symbols and Documentation strings"
 - DOC-TYPE-OBJECT :: Type class instance."
   (let ((html-doc (regex-replace-all
                    (format nil "~a" #\newline) doc "<br>")))
-    (format stream "<div class='function'><b>~a</b>: <a id='~a'>~a</a></div>~%" type sym sym)
+    (format stream "<div class='symbol'><b>~a</b>: <a id='~a'>~a</a></div>~%" type sym sym)
     (format stream "<div class='documentation'><b>Documentation</b>:<br>~a</div><br>~%" html-doc)))
 
 (defmethod write-symbol (stream sym type doc (doc-type-object doc-plaintext))
@@ -418,7 +419,7 @@ VALUES of Symbols and Documentation strings"
 - STREAM :: File output stream.
 - TYPE :: dependency to document.
 - DOC-TYPE-OBJECT :: Type class instance."
-  (format stream "</div><br><div class='footer'>~a End</div><br><br>~%" type))
+  (format stream "<br><div class='footer'><b>~a End</b></div></div><br><br>~%" type))
 
 (defmethod write-group-footer (stream type (doc-type-object doc-plaintext))
     "Write group footer documentation as plaintext.
@@ -443,7 +444,7 @@ VALUES of Symbols and Documentation strings"
 - STREAM :: File output stream.
 - PACKGAE :: document package.
 - DOC-TYPE-OBJECT :: Type class instance."
-    (format stream "~a - Package End<br></body>~%" package))
+    (format stream "<br><b><div class='footer'>~a - Package End</b></div><br></body>~%" package))
 
 (defmethod write-document-footer (stream package (doc-type-object doc-plaintext))
     "Write document footer documentation as plaintext.

@@ -1,0 +1,35 @@
+.large-header {
+    font-family: "Arial", 'Lucida Sans Unicode';
+    font-size:xx-large;
+    color: #000000;
+}
+
+.group {
+    font-family: "Arial", 'Lucida Sans Unicode';
+    background-color: #EEEEEE;
+}
+
+.header {
+    font-family: "Arial", 'Lucida Sans Unicode';
+    font-size:x-large;
+    background-color: #CCCCCC;
+}
+
+.footer {
+    font-family: "Arial", 'Lucida Sans Unicode';
+    background-color: #CCCCCC;
+}
+
+.dependency {
+    font-family: "Courier New", 'Lucida Sans Unicode';
+    background-color: #EEEEEE;
+}
+.symbol {
+    font-family: "Courier New", 'Lucida Sans Unicode';
+    background-color: #C0C0C0;
+}
+
+.documentation {
+    font-family: "Courier New", 'Lucida Sans Unicode';
+    background-color: #DDDDDD;
+}
