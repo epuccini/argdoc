@@ -8,8 +8,6 @@
 
 (in-package :argdoc)
 
-(defvar *test* nil)
-
 (defclass doc-type ()
   ())
 
@@ -19,7 +17,7 @@
 (defclass doc-html (doc-type)
   ())
 
-(defclass doc-richtext (doc-type)
+(defclass doc-stdout (doc-type)
   ())
 
 (defun document (&key package filename path doc-type-object)
@@ -28,7 +26,7 @@
 - PACKAGE :: Package name
 - FILENAME :: Document file name
 - PATH :: Documentation path
-- DOC-TYPE-OBJECT :: RICHTEXT, HTML or PLAINTEXT doc-type-objext
+- DOC-TYPE-OBJECT :: STDOUT, HTML or PLAINTEXT doc-type-objext
 *Returns
 Document source."
   (asdf:load-system package)
@@ -41,18 +39,40 @@ Document source."
 (defgeneric ->key (thing))
 
 (defmethod ->key ((thing string))
+  "Key method handles string.
+*Arguments
+- THING :: Key-object string
+*Returns
+- Key"
   (intern (string-upcase thing) :keyword))
 
 (defmethod ->key ((thing symbol))
+  "Key method handles symbols.
+*Arguments
+- THING :: Key-object symbol
+*Returns
+- Symbold"
   (if (keywordp thing)
       thing
       (intern (symbol-name thing) :keyword)))
 
 (defgeneric dependencies-of (system))
 (defmethod dependencies-of ((system symbol))
-  (mapcar #'->key (slot-value (asdf/system:find-system system) 'asdf/component:sideway-dependencies)))
+  "Get dependency of system.
+*Arguments
+- SYSTEM :: System symbol
+*Returns
+List of symbols."
+  (mapcar #'->key
+          (slot-value (asdf/system:find-system system)
+                      'asdf/component:sideway-dependencies)))
 
 (defun ordered-dep-tree (dep-tree)
+  "Get dependency tree.
+*Arguments
+- DEP-TREE :: Part of dependency-tree to traverse.
+*Returns
+Ordered dependency tree"
   (let ((res))
     (labels ((in-res? (dep-name) (member dep-name res))
              (insert-pass (remaining)
@@ -70,6 +90,11 @@ Document source."
 
 (defgeneric dependency-tree (system))
 (defmethod dependency-tree ((system symbol))
+  "Get dependency tree of a system package.
+*Arguments
+- SYSTEM :: System packge of type symbol.
+*Returns
+List of package dependencies"
   (let ((res (make-hash-table)))
     (labels ((rec (sys) 
                (loop with deps = (dependencies-of sys)
@@ -113,7 +138,11 @@ VALUES of Symbols and Documentation strings"
                         (find-package package)))
           (prog1
               (push sym syms)
-            (push (documentation sym 'function) docs))))
+            (let ((fun-doc (documentation sym 'function))
+                  (desc-doc (with-output-to-string (*standard-output*) (describe sym))))
+              (if fun-doc
+                  (push fun-doc docs)
+                  (push desc-doc docs))))))
       (values syms docs))))
 
 (defun inspect-package (package stream doc-type-object)
@@ -122,116 +151,210 @@ VALUES of Symbols and Documentation strings"
 - PACKAGE :: Package name
 - STREAM :: File stream
 - DOC-TYPE-OBJECT :: Document type object"
-  (write-document-header package stream doc-type-object)
+  (write-document-header stream package doc-type-object)
   (write-group-header stream "Dependencies" doc-type-object)
-  (write-dependencies package stream doc-type-object)
+  (write-dependencies stream package doc-type-object)
   (write-group-footer stream "Dependencies" doc-type-object)
   (write-group-header stream "Variables" doc-type-object)
-  (write-variables package stream doc-type-object)
+  (write-variables stream package doc-type-object)
   (write-group-footer stream "Variables" doc-type-object)
   (write-group-header stream "Functions" doc-type-object)
-  (write-functions package stream doc-type-object)
+  (write-functions stream package doc-type-object)
   (write-group-footer stream "Functions" doc-type-object)
-  (write-document-footer package stream doc-type-object)
+  (write-document-footer stream package doc-type-object)
   doc-type-object)
 
-(defun write-functions (package stream doc-type-object)
+(defun write-functions (stream package doc-type-object)
   "Write all package functions to file.
 *Arguments
-- PACKAGE :: Package name
-- STREAM :: File stream
-- DOC-TYPE-OBJECT :: Document type object"
+- PACKAGE :: Package name.
+- STREAM :: File stream.
+- DOC-TYPE-OBJECT :: Document type object."
   (multiple-value-bind (syms docs) (all-function-symbols package)
                        (mapcar #'(lambda (s d)
-                                   (write-symbol s d stream doc-type-object))
+                                   (write-symbol stream s d doc-type-object))
                                syms docs)
                        syms))
 
-(defun write-variables (package stream doc-type-object)
+(defun write-variables (stream package doc-type-object)
   "Write all package variables to file.
 *Arguments
-- PACKAGE :: Package name
-- STREAM :: File stream
-- DOC-TYPE-OBJECT :: Document type object"
+- PACKAGE :: Package name.
+- STREAM :: File stream.
+- DOC-TYPE-OBJECT :: Document type object."
   (multiple-value-bind (syms docs) (all-variable-symbols package)
                        (mapcar #'(lambda (s d)
-                                   (write-symbol s d stream doc-type-object))
+                                   (write-symbol stream s d doc-type-object))
                                syms docs)
                        syms))
 
-(defun write-dependencies (package stream doc-type-object)
+(defun write-dependencies (stream package doc-type-object)
   "Write all package dependencies to file.
 *Arguments
-- PACKAGE :: Package name
-- STREAM :: File stream
-- DOC-TYPE-OBJECT :: Document type object"
+- PACKAGE :: Package name.
+- STREAM :: File stream.
+- DOC-TYPE-OBJECT :: Document type object."
   (let ((deps (dependency-tree package)))
     (mapcar #'(lambda (d)
-                (write-dependency d stream doc-type-object))
+                (write-dependency stream d doc-type-object))
             deps)
     deps))
 
-
-(defmethod write-document-header (package stream (doc-type-object doc-html))
+(defgeneric write-document-header (stream package doc-type-object))
+(defmethod write-document-header (stream package (doc-type-object doc-html))
+  "Write document header as html.
+*Arguments
+- PACKAGE :: Package to document.
+- STREAM :: File output stream.
+- DOC-TYPE-OBJECT :: Type class instance."
   (format stream "<head><title>~a</title></head><body><h1>~a - Package documentation</h1><br>~%"
           package package))
 
-(defmethod write-document-header (package stream (doc-type-object doc-plaintext))
+(defmethod write-document-header (stream package (doc-type-object doc-plaintext))
+  "Write document header as plaintext.
+*Arguments
+- PACKAGE :: Package to document.
+- STREAM :: File output stream.
+- DOC-TYPE-OBJECT :: Type class instance."
   (format stream "~%~a - Package documentation~%~%" package))
 
-(defmethod write-document-header (package stream (doc-type-object doc-richtext))
-  (format stream "~%~a - Package documentation~%~%" package))
+(defmethod write-document-header (stream package (doc-type-object doc-stdout))
+  "Write document header to stdout.
+*Arguments
+- PACKAGE :: Package to document.
+- STREAM :: File output stream.
+- DOC-TYPE-OBJECT :: Type class instance."
+  (format t "~%~a - Package documentation~%~%" package))
 
+(defgeneric write-group-header (stream type doc-type-object))
 (defmethod write-group-header (stream type (doc-type-object doc-html))
+    "Write group header as html.
+*Arguments
+- GROUP :: Group to document.
+- STREAM :: File output stream.
+- DOC-TYPE-OBJECT :: Type class instance."
   (format stream "<div class='header'><h1>~a</h1></div><br><div class='group'>~%" type))
 
 (defmethod write-group-header (stream type (doc-type-object doc-plaintext))
+    "Write group header as plaintext.
+*Arguments
+- GROUP :: Group to document.
+- STREAM :: File output stream.
+- DOC-TYPE-OBJECT :: Type class instance."
   (format stream "~%~a~%~%" type))
 
-(defmethod write-group-header (stream type (doc-type-object doc-richtext))
-  (format stream "~%~a~%~%" type))
+(defmethod write-group-header (stream type (doc-type-object doc-stdout))
+    "Write group header to stdout.
+*Arguments
+- GROUP :: Group to document.
+- STREAM :: File output stream.
+- DOC-TYPE-OBJECT :: Type class instance."
+  (format t "~%~a~%~%" type))
 
-(defmethod write-symbol (function doc stream (doc-type-object doc-html))
+(defgeneric write-symbol (stream sym doc doc-type-object))
+(defmethod write-symbol (stream sym doc (doc-type-object doc-html))
+  "Write symbol with documentation as html.
+*Arguments
+- STREAM :: File output stream.
+- SYM :: Symbol to document.
+- DOC-TYPE-OBJECT :: Type class instance."
   (let ((html-doc (cl-ppcre:regex-replace-all
                    (format nil "~a" #\newline) doc "<br>")))
-    (format stream "<div class='function'><b>Function</b>: ~a</div>~%" function)
+    (format stream "<div class='function'><b>Function</b>: ~a</div>~%" sym)
     (format stream "<div class='documentation'><b>Documentation</b>:<br>~a</div><br>~%" html-doc)))
 
-(defmethod write-function (function doc stream (doc-type-object doc-plaintext))
-  (format stream "Function: ~a~%" function)
+(defmethod write-symbol (stream sym doc (doc-type-object doc-plaintext))
+  "Write symbol with documentation as plaintext.
+*Arguments
+- STREAM :: File output stream.
+- SYM :: Symbol to document.
+- DOC-TYPE-OBJECT :: Type class instance."
+  (format stream "Function: ~a~%" sym)
   (format stream "Documentation:~%~a~%~%" doc))
 
-(defmethod write-function (function doc stream (doc-type-object doc-richtext))
-  (format stream "Function: ~a~%" function)
-  (format stream "Documentation:~%~a~%~%" doc))
+(defmethod write-symbol (stream sym doc (doc-type-object doc-stdout))
+    "Write symbol with documentation to stdout.
+*Arguments
+- STREAM :: File output stream.
+- SYM :: Symbol to document.
+- DOC-TYPE-OBJECT :: Type class instance."
+  (format t "Function: ~a~%" sym)
+  (format t "Documentation:~%~a~%~%" doc))
 
-(defmethod write-dependency (dependency stream (doc-type-object doc-html))
-  (format stream "<div class='dependency'><b>Dependency</b>: ~a</div>~%"
+(defgeneric write-dependency (stream dependency doc-type-object))
+(defmethod write-dependency (stream dependency (doc-type-object doc-html))
+  "Write dependency with documentation as html.
+*Arguments
+- STREAM :: File output stream.
+- DEPENDENCY :: dependency to document.
+- DOC-TYPE-OBJECT :: Type class instance."
+    (format stream "<div class='dependency'><b>Dependency</b>: ~a</div>~%"
           dependency))
 
-(defmethod write-dependency (dependency stream (doc-type-object doc-plaintext))
+(defmethod write-dependency (stream dependency (doc-type-object doc-plaintext))
+  "Write dependency with documentation as plaintext.
+*Arguments
+- STREAM :: File output stream.
+- DEPENDENCY :: dependency to document.
+- DOC-TYPE-OBJECT :: Type class instance."
   (format stream "Dependency: ~a~%" dependency))
 
-(defmethod write-dependency (dependency stream (doc-type-object doc-richtext))
-  (format stream "Dependency: ~a~%" dependency))
+(defmethod write-dependency (stream dependency (doc-type-object doc-stdout))
+  "Write dependency with documentation to stdout.
+*Arguments
+- STREAM :: File output stream.
+- DEPENDENCY :: dependency to document.
+- DOC-TYPE-OBJECT :: Type class instance."
+  (format t "Dependency: ~a~%" dependency))
 
-
+(defgeneric write-group-footer (stream type doc-type-object))
 (defmethod write-group-footer (stream type (doc-type-object doc-html))
+    "Write group footer documentation as html.
+*Arguments
+- STREAM :: File output stream.
+- TYPE :: dependency to document.
+- DOC-TYPE-OBJECT :: Type class instance."
   (format stream "</div><div class='footer'>~a End</div><br><br>~%" type))
 
 (defmethod write-group-footer (stream type (doc-type-object doc-plaintext))
-  (format stream "~%~a End~%~%" type))
+    "Write group footer documentation as plaintext.
+*Arguments
+- STREAM :: File output stream.
+- TYPE :: dependency to document.
+- DOC-TYPE-OBJECT :: Type class instance."
+    (format stream "~%~a End~%~%" type))
 
-(defmethod write-group-footer (stream type (doc-type-object doc-richtext))
-  (format stream "~%~a End~%~%" type))
+(defmethod write-group-footer (stream type (doc-type-object doc-stdout))
+    "Write group footer documentation to stdout.
+*Arguments
+- STREAM :: File output stream.
+- TYPE :: dependency to document.
+- DOC-TYPE-OBJECT :: Type class instance."
+    (format t "~%~a End~%~%" type))
 
-(defmethod write-document-footer (package stream (doc-type-object doc-html))
-  (format stream "~a - Package End<br></body>~%" package))
+(defgeneric write-document-footer (stream package doc-type-object))
+(defmethod write-document-footer (stream package (doc-type-object doc-html))
+    "Write document footer documentation as html.
+*Arguments
+- STREAM :: File output stream.
+- PACKGAE :: document package.
+- DOC-TYPE-OBJECT :: Type class instance."
+    (format stream "~a - Package End<br></body>~%" package))
 
-(defmethod write-document-footer (package stream (doc-type-object doc-plaintext))
-  (format stream "~a - Package End~%" package))
+(defmethod write-document-footer (stream package (doc-type-object doc-plaintext))
+    "Write document footer documentation as plaintext.
+*Arguments
+- STREAM :: File output stream.
+- PACKGAE :: document package.
+- DOC-TYPE-OBJECT :: Type class instance."
+    (format stream "~a - Package End~%" package))
 
-(defmethod write-document-footer (package stream (doc-type-object doc-richtext))
-  (format stream "~a - Package End~%" package))
+(defmethod write-document-footer (stream package (doc-type-object doc-stdout))
+    "Write document footer documentation to stdout.
+*Arguments
+- STREAM :: File output stream.
+- PACKGAE :: document package.
+- DOC-TYPE-OBJECT :: Type class instance."
+    (format t "~a - Package End~%" package))
 
   
