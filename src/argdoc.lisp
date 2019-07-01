@@ -222,7 +222,7 @@ VALUES of Symbols and Documentation strings"
 - DOC-TYPE-OBJECT :: Document type object."
   (multiple-value-bind (syms docs) (all-class-symbols package)
                        (mapcar #'(lambda (s d)
-                                   (write-symbol stream s d doc-type-object))
+                                   (write-symbol stream s "Class" d doc-type-object))
                                syms docs)
                        syms))
 (defun write-index (stream package doc-type-object)
@@ -245,7 +245,7 @@ VALUES of Symbols and Documentation strings"
 - DOC-TYPE-OBJECT :: Document type object."
   (multiple-value-bind (syms docs) (all-function-symbols package)
                        (mapcar #'(lambda (s d)
-                                   (write-symbol stream s d doc-type-object))
+                                   (write-symbol stream s "Function" d doc-type-object))
                                syms docs)
                        syms))
 
@@ -257,7 +257,7 @@ VALUES of Symbols and Documentation strings"
 - DOC-TYPE-OBJECT :: Document type object."
   (multiple-value-bind (syms docs) (all-variable-symbols package)
                        (mapcar #'(lambda (s d)
-                                   (write-symbol stream s d doc-type-object))
+                                   (write-symbol stream s "Variable" d doc-type-object))
                                syms docs)
                        syms))
 
@@ -324,8 +324,8 @@ VALUES of Symbols and Documentation strings"
 - DOC-TYPE-OBJECT :: Type class instance."
   (format t "~%~a~%~%" type))
 
-(defgeneric write-symbol (stream sym doc doc-type-object))
-(defmethod write-symbol (stream sym doc (doc-type-object doc-html))
+(defgeneric write-symbol (stream sym type doc doc-type-object))
+(defmethod write-symbol (stream sym type doc (doc-type-object doc-html))
   "Write symbol with documentation as html.
 *Arguments
 - STREAM :: File output stream.
@@ -334,27 +334,29 @@ VALUES of Symbols and Documentation strings"
 - DOC-TYPE-OBJECT :: Type class instance."
   (let ((html-doc (regex-replace-all
                    (format nil "~a" #\newline) doc "<br>")))
-    (format stream "<div class='function'><b>Function</b>: <a id='~a'>~a</a></div>~%" sym sym)
+    (format stream "<div class='function'><b>~a</b>: <a id='~a'>~a</a></div>~%" type sym sym)
     (format stream "<div class='documentation'><b>Documentation</b>:<br>~a</div><br>~%" html-doc)))
 
-(defmethod write-symbol (stream sym doc (doc-type-object doc-plaintext))
+(defmethod write-symbol (stream sym type doc (doc-type-object doc-plaintext))
   "Write symbol with documentation as plaintext.
 *Arguments
 - STREAM :: File output stream.
 - SYM :: Symbol to document.
+- TYPE :: Type of symbol to document.
 - DOC :; Documentation
 - DOC-TYPE-OBJECT :: Type class instance."
-  (format stream "Function: ~a~%" sym)
+  (format stream "~a: ~a~%" type sym)
   (format stream "Documentation:~%~a~%~%" doc))
 
-(defmethod write-symbol (stream sym doc (doc-type-object doc-stdout))
+(defmethod write-symbol (stream sym type doc (doc-type-object doc-stdout))
     "Write symbol with documentation to stdout.
 *Arguments
 - STREAM :: File output stream.
 - SYM :: Symbol to document.
+- TYPE :: Type of symbol to document.
 - DOC :; Documentation
 - DOC-TYPE-OBJECT :: Type class instance."
-  (format t "Function: ~a~%" sym)
+  (format t "~a: ~a~%" type sym)
   (format t "Documentation:~%~a~%~%" doc))
 
 
