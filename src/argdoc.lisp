@@ -126,6 +126,30 @@ VALUES of Symbols and Documentation strings"
       (values syms docs))))
 
 
+(defun all-variable-and-function-symbols (package)
+  "Retrieves all classes, variables and functions in a package.
+*Arguments
+- PACKAGE :: Package name
+*Returns
+VALUES of Symbols and Documentation strings"
+  (when (find-package package)
+    (let ((syms (list)))
+      (do-all-symbols (sym package)
+        (handler-case
+            (when (or
+                   (and (boundp sym)
+                        (eql (symbol-package sym)
+                             (find-package package)))
+                   (and (fboundp sym)
+                        (eql (symbol-package sym)
+                             (find-package package)))
+                   (and (class-name (find-class sym))
+                        (eql (symbol-package sym)
+                             (find-package package))))
+              (push sym syms))
+          (error (condition))))
+      syms)))
+
 (defun all-variable-symbols (package)
   "Retrieves all variables in a package.
 *Arguments
@@ -172,6 +196,9 @@ VALUES of Symbols and Documentation strings"
 - STREAM :: File stream
 - DOC-TYPE-OBJECT :: Document type object"
   (write-document-header stream package doc-type-object)
+  (write-group-header stream "Index" doc-type-object)
+  (write-index stream package doc-type-object)
+  (write-group-footer stream "Index" doc-type-object)
   (write-group-header stream "Dependencies" doc-type-object)
   (write-dependencies stream package doc-type-object)
   (write-group-footer stream "Dependencies" doc-type-object)
@@ -198,6 +225,18 @@ VALUES of Symbols and Documentation strings"
                                    (write-symbol stream s d doc-type-object))
                                syms docs)
                        syms))
+(defun write-index (stream package doc-type-object)
+  "Write all package functions and variables to file.
+*Arguments
+- PACKAGE :: Package name.
+- STREAM :: File stream.
+- DOC-TYPE-OBJECT :: Document type object."
+  (let ((syms (sort (all-variable-and-function-symbols package) #'string<)))
+    (mapcar #'(lambda (s)
+                (write-indices stream s doc-type-object))
+            syms)
+    syms))
+
 (defun write-functions (stream package doc-type-object)
   "Write all package functions to file.
 *Arguments
@@ -291,10 +330,11 @@ VALUES of Symbols and Documentation strings"
 *Arguments
 - STREAM :: File output stream.
 - SYM :: Symbol to document.
+- DOC :; Documentation
 - DOC-TYPE-OBJECT :: Type class instance."
   (let ((html-doc (regex-replace-all
                    (format nil "~a" #\newline) doc "<br>")))
-    (format stream "<div class='function'><b>Function</b>: ~a</div>~%" sym)
+    (format stream "<div class='function'><b>Function</b>: <a id='~a'>~a</a></div>~%" sym sym)
     (format stream "<div class='documentation'><b>Documentation</b>:<br>~a</div><br>~%" html-doc)))
 
 (defmethod write-symbol (stream sym doc (doc-type-object doc-plaintext))
@@ -302,6 +342,7 @@ VALUES of Symbols and Documentation strings"
 *Arguments
 - STREAM :: File output stream.
 - SYM :: Symbol to document.
+- DOC :; Documentation
 - DOC-TYPE-OBJECT :: Type class instance."
   (format stream "Function: ~a~%" sym)
   (format stream "Documentation:~%~a~%~%" doc))
@@ -311,9 +352,36 @@ VALUES of Symbols and Documentation strings"
 *Arguments
 - STREAM :: File output stream.
 - SYM :: Symbol to document.
+- DOC :; Documentation
 - DOC-TYPE-OBJECT :: Type class instance."
   (format t "Function: ~a~%" sym)
   (format t "Documentation:~%~a~%~%" doc))
+
+
+(defgeneric write-indices (stream sym doc-type-object))
+(defmethod write-indices (stream sym (doc-type-object doc-html))
+  "Write symbol with documentation as html.
+*Arguments
+- STREAM :: File output stream.
+- SYM :: Symbol to document.
+- DOC-TYPE-OBJECT :: Type class instance."
+    (format stream "<div class='index'><a href='#~a'>~a</a></div>~%" sym sym))
+
+(defmethod write-indices (stream sym (doc-type-object doc-plaintext))
+  "Write symbol with documentation as plaintext.
+*Arguments
+- STREAM :: File output stream.
+- SYM :: Symbol to document.
+- DOC-TYPE-OBJECT :: Type class instance."
+  (format stream "~a~%" sym))
+
+(defmethod write-indices (stream sym (doc-type-object doc-stdout))
+    "Write symbol with documentation to stdout.
+*Arguments
+- STREAM :: File output stream.
+- SYM :: Symbol to document.
+- DOC-TYPE-OBJECT :: Type class instance."
+  (format t "~a~%" sym))
 
 (defgeneric write-dependency (stream dependency doc-type-object))
 (defmethod write-dependency (stream dependency (doc-type-object doc-html))
@@ -348,7 +416,7 @@ VALUES of Symbols and Documentation strings"
 - STREAM :: File output stream.
 - TYPE :: dependency to document.
 - DOC-TYPE-OBJECT :: Type class instance."
-  (format stream "</div><div class='footer'>~a End</div><br><br>~%" type))
+  (format stream "</div><br><div class='footer'>~a End</div><br><br>~%" type))
 
 (defmethod write-group-footer (stream type (doc-type-object doc-plaintext))
     "Write group footer documentation as plaintext.

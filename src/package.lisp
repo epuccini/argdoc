@@ -17,8 +17,10 @@
    #:inspect-package
    #:write-document-header
    #:write-group-header
+   #:write-index
    #:write-functions
    #:write-symbol
+   #:write-indices
    #:write-dependencies
    #:write-group-footer
    #:write-document-footer
