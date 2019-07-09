@@ -28,5 +28,5 @@
    #:doc-html
    #:doc-plaintext
    #:doc-stdout
-   #:dependency-tree))
+   #:dependencies-of))
 

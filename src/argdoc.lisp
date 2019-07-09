@@ -37,74 +37,16 @@ Document source."
     (inspect-package package stream
                      (make-instance doc-type))))
 
-(defgeneric ->key (thing))
 
-(defmethod ->key ((thing string))
-  "Key method handles string.
-*Arguments
-- THING :: Key-object string
-*Returns
-- Key"
-  (intern (string-upcase thing) :keyword))
-
-(defmethod ->key ((thing symbol))
-  "Key method handles symbols.
-*Arguments
-- THING :: Key-object symbol
-*Returns
-- Symbol"
-  (if (keywordp thing)
-      thing
-      (intern (symbol-name thing) :keyword)))
-
-(defgeneric dependencies-of (system))
-(defmethod dependencies-of ((system symbol))
+(defun dependencies-of (system)
   "Get dependency of system.
 *Arguments
 - SYSTEM :: System symbol
 *Returns
 List of symbols."
-  (mapcar #'->key
-          (slot-value (asdf/system:find-system system)
-                      'asdf/component:sideway-dependencies)))
-
-(defun ordered-dep-tree (dep-tree)
-  "Get dependency tree.
-*Arguments
-- DEP-TREE :: Part of dependency-tree to traverse.
-*Returns
-Ordered dependency tree"
-  (let ((res))
-    (labels ((in-res? (dep-name) (member dep-name res))
-             (insert-pass (remaining)
-                (loop for (dep . sub-deps) in remaining
-                      for unmet-sub-deps = (remove-if #'in-res? sub-deps)
-                      if (null unmet-sub-deps) do (push dep res)
-                      else collect (cons dep unmet-sub-deps) into next-rems
-                      finally (return next-rems))))
-      (loop for (dep . callers) in dep-tree for deps-of = (dependencies-of dep)
-            if (null deps-of) do (push dep res)
-            else collect (cons dep deps-of) into non-zeros
-            finally (loop while non-zeros
-                          do (setf non-zeros (insert-pass non-zeros)))))
-      (reverse res)))
-
-(defgeneric dependency-tree (system))
-(defmethod dependency-tree ((system symbol))
-  "Get dependency tree of a system package.
-*Arguments
-- SYSTEM :: System packge of type symbol.
-*Returns
-List of package dependencies"
-  (let ((res (make-hash-table)))
-    (labels ((rec (sys) 
-               (loop with deps = (dependencies-of sys)
-                  for dep in deps for dep-k = (->key dep)
-                  unless (gethash dep-k res) do (rec dep)
-                  do (pushnew (->key sys) (gethash dep-k res)))))
-      (rec system))
-    (ordered-dep-tree (alexandria:hash-table-alist res))))
-
+  (sort
+   (slot-value (asdf/system:find-system system)
+               'asdf/component:sideway-dependencies) #'string<))
 
 (defun all-class-symbols (package)
   "Retrieves all classes in a package.
@@ -123,7 +65,8 @@ VALUES of Symbols and Documentation strings"
               (let ((class-doc (with-output-to-string (*standard-output*) (describe sym))))
                 (push sym syms)
                 (push class-doc docs)))
-          (error (condition))))
+          (error (condition)
+            (declare (ignore condition)))))
       (values syms docs))))
 
 
@@ -148,7 +91,8 @@ VALUES of Symbols and Documentation strings"
                         (eql (symbol-package sym)
                              (find-package package))))
               (push sym syms))
-          (error (condition))))
+          (error (condition)
+            (declare (ignore condition)))))
       syms)))
 
 (defun all-variable-symbols (package)
@@ -183,7 +127,8 @@ VALUES of Symbols and Documentation strings"
                    (eql (symbol-package sym)
                         (find-package package)))
           (let ((fun-doc (documentation sym 'function))
-                (desc-doc (with-output-to-string (*standard-output*) (describe sym))))
+                (desc-doc
+                 (with-output-to-string (*standard-output*) (describe sym))))
             (push sym syms)
             (if fun-doc
                 (push fun-doc docs)
@@ -268,7 +213,7 @@ VALUES of Symbols and Documentation strings"
 - PACKAGE :: Package name.
 - STREAM :: File stream.
 - DOC-TYPE-OBJECT :: Document type object."
-  (let ((deps (dependency-tree package)))
+  (let ((deps (dependencies-of package)))
     (mapcar #'(lambda (d)
                 (write-dependency stream d doc-type-object))
             deps)
