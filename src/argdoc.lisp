@@ -52,7 +52,7 @@ Document source."
 *Arguments
 - THING :: Key-object symbol
 *Returns
-- Symbold"
+- Symbol"
   (if (keywordp thing)
       thing
       (intern (symbol-name thing) :keyword)))
